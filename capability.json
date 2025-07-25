@@ -1,0 +1,7 @@
+{
+  "platformName": "Android",
+  "automationName": "uiautomator2",
+  "udid": "RR8R20AAMSP",
+  "appPackage": "com.bnc.finance",
+  "appActivity": "com.bnc.finance/com.byb.main.MainActivity"
+}

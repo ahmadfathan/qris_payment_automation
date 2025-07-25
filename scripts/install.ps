@@ -1,0 +1,31 @@
+# Stop on first error
+$ErrorActionPreference = "Stop"
+
+$VenvPath = ".\.venv"
+
+Write-Host "🔧 Checking for Python..."
+$python = Get-Command python -ErrorAction SilentlyContinue
+if (-not $python) {
+    Write-Host "❌ Python not found. Please install Python 3."
+    exit 1
+}
+
+if (-not (Test-Path $VenvPath)) {
+    Write-Host "📦 Creating virtual environment in .venv..."
+    python -m venv .venv
+}
+
+Write-Host "📂 Activating virtual environment..."
+& .\.venv\Scripts\Activate.ps1
+
+Write-Host "⬆️ Upgrading pip..."
+pip install --upgrade pip
+
+if (Test-Path "requirements.txt") {
+    Write-Host "📜 Installing dependencies..."
+    pip install -r requirements.txt
+} else {
+    Write-Host "⚠️ requirements.txt not found. Skipping installation."
+}
+
+Write-Host "✅ Setup complete."
