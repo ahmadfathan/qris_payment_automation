@@ -1,4 +1,5 @@
 import os
+import sys
 
 def get_user_ids(filename):
     ids = []
@@ -19,3 +20,9 @@ def get_newest_file_by_name(folder_path):
     files.sort(reverse=False)
     
     return files[-1]
+
+def get_resource_path(relative_path):
+    """Get absolute path to resource, works for dev and PyInstaller"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
