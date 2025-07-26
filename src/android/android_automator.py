@@ -195,6 +195,10 @@ class AndroidAutomator:
             EC.presence_of_element_located((AppiumBy.XPATH, "//android.widget.EditText"))
         )
         pin_et.send_keys(self.__pin)
+    
+    def print_current_activity(self):
+        current_activity = self.__driver.current_activity
+        print("Current Activity:", current_activity)
 
     def quit(self):
         self.__driver.quit()
