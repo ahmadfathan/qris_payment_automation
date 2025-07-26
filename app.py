@@ -41,16 +41,16 @@ class PaymentWorker(QThread):
     payment_finished = pyqtSignal()
     log_message = pyqtSignal(str)  # NEW: Signal to send status updates
 
-    def __init__(self, pin):
+    def __init__(self, pin, device_udid):
         super().__init__()
         self.pin = pin
+        self.device_udid = device_udid
 
     def run(self):
         self.log_message.emit("Loading configuration...")
         load_dotenv()
 
         appium_server_url = os.getenv("APPIUM_SERVER_URL")
-        device_udid = os.getenv("DEVICE_UDID")
         neo_pin = os.getenv("NEO_PIN")
 
         base_url = os.getenv("WEB_BASE_URL")
@@ -73,7 +73,7 @@ class PaymentWorker(QThread):
         browser_automator.generate_QRIS()
         self.log_message.emit("QRIS generated successfully.")
 
-        options = get_my_default_ui_automator2_options(device_udid)
+        options = get_my_default_ui_automator2_options(self.device_udid)
         android_automator = AndroidAutomator(appium_server_url, options)
         android_automator.set_credentials(neo_pin)
 
@@ -163,7 +163,7 @@ class QRISAutoPayApp(QWidget):
             self.device_label.setText(f"Detected: {self.get_device_udid()}")
             self.status_label.setText(f"Status: Process started with PIN: {pin}")
 
-            self.worker = PaymentWorker(pin)
+            self.worker = PaymentWorker(pin, self.get_device_udid())
             self.worker.payment_finished.connect(self.stop_payment_process)
             self.worker.log_message.connect(self.update_status_label)
             self.worker.start()
