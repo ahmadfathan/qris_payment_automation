@@ -3,9 +3,9 @@ from .utils import get_resource_path
 import platform
 
 if platform.system() == "Windows": 
-    adb_path = get_resource_path("adb\\windows\\adb.exe")
+    adb_path = get_resource_path("embed\\adb\\windows\\adb.exe")
 else:
-    adb_path = get_resource_path("adb/macos/adb")
+    adb_path = get_resource_path("embed/adb/macos/adb")
 
 def get_connected_devices():
     try:
