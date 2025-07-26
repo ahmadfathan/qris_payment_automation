@@ -30,7 +30,7 @@ class AndroidAutomator:
         self.__driver = webdriver.Remote(appium_server_url, options=options)
         self.__logger = logger
 
-    def __self.__log(self, msg):
+    def __log(self, msg):
         if self.__logger is None: return
         self.__logger.debug(f"[AndroidAutomator] {msg}")
 

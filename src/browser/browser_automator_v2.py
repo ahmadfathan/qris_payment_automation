@@ -50,9 +50,9 @@ class BrowserAutomator:
 
         self.__logger = logger
 
-    def __self.__log(self, msg):
+    def __log(self, msg):
         if self.__logger is None: return
-        self.__logger.debug(f"[AndroidAutomator] {msg}")
+        self.__logger.debug(f"[BrowserAutomator] {msg}")
 
     def __wait(self, timeout = 15):
         return WebDriverWait(self.__driver, timeout)
