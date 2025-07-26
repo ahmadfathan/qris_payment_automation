@@ -1,6 +1,7 @@
 import subprocess
 
-adb_path = "/Users/haus-dev/Library/Android/sdk/platform-tools/adb"
+# adb_path = "/Users/haus-dev/Library/Android/sdk/platform-tools/adb"\
+adb_path = r"C:\Users\ghooz\Downloads\qris_payment_automation-main\qris_payment_automation-main\adb\windows\adb.exe"
 
 def get_connected_devices():
     try:

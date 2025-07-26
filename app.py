@@ -16,7 +16,12 @@ from multiprocessing import Process, Event, set_start_method
 from time import sleep
 from src.adb_helpers import run_adb_command, get_connected_devices
 
-set_start_method("fork")
+import platform
+
+if platform.system() == "Windows": 
+    set_start_method("spawn")
+else:
+    set_start_method("fork")
 
 def adb_push_file_to_android(filename, dest):
     run_adb_command(f"push {filename} {dest}")
