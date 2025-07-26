@@ -34,9 +34,9 @@ def download_QRIS(browser_automator, continue_event, qris_downloaded_event):
 
 def scan_QRIS(android_automator, qris_downloaded_event, continue_event):
     while True:
-        print("[SCAN QRIS] waiting QRIS downloaded..")
+        # print("[SCAN QRIS] waiting QRIS downloaded..")
         qris_downloaded_event.wait()
-        print("[SCAN QRIS] QRIS downloaded")
+        # print("[SCAN QRIS] QRIS downloaded")
         
         # push the file to android device
         # dest_folder = "/storage/emulated/0/Pictures"
@@ -52,7 +52,7 @@ def scan_QRIS(android_automator, qris_downloaded_event, continue_event):
         # scan QRIS
         android_automator.pay_qris_transaction()
 
-        print("Done!")
+        # print("Done!")
 
         # emit continue event
         continue_event.set()
@@ -68,7 +68,7 @@ class PaymentWorker(QThread):
         self.pin = pin
 
     def run(self):
-        print(f"Payment process started with PIN: {self.pin}")
+        # print(f"Payment process started with PIN: {self.pin}")
         load_dotenv()
 
         appium_server_url = os.getenv("APPIUM_SERVER_URL")
@@ -89,13 +89,13 @@ class PaymentWorker(QThread):
         browser_automator.set_credentials(username, password)
         browser_automator.set_user_ids(user_ids)
 
-        print("[BROWSER][INFO] Setting up..")
+        # print("[BROWSER][INFO] Setting up..")
         browser_automator.setup()
-        print("[BROWSER][INFO] Done.")
+        # print("[BROWSER][INFO] Done.")
 
-        print("[INFO] Generating QRIS..")
+        # print("[INFO] Generating QRIS..")
         browser_automator.generate_QRIS()
-        print("[INFO] Done.")
+        # print("[INFO] Done.")
 
         options = get_my_default_ui_automator2_options(device_udid)
         android_automator = AndroidAutomator(appium_server_url, options)

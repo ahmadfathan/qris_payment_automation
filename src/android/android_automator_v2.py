@@ -26,8 +26,13 @@ def get_my_default_ui_automator2_options(device_udid):
     return options
 
 class AndroidAutomator:
-    def __init__(self, appium_server_url, options):
+    def __init__(self, appium_server_url, options, logger = None):
         self.__driver = webdriver.Remote(appium_server_url, options=options)
+        self.__logger = logger
+
+    def __self.__log(self, msg):
+        if self.__logger is None: return
+        self.__logger.debug(f"[AndroidAutomator] {msg}")
 
     def set_credentials(self, pin: str):
         self.__pin = pin
@@ -73,7 +78,7 @@ class AndroidAutomator:
     
     def __print_current_activity(self):
         current_activity = self.__driver.current_activity
-        print("Current Activity:", current_activity)
+        self.__self.__log(f"Current Activity: {current_activity}")
 
     def __click_gallery(self):
         self.__click_on_coordinate(554, 1309)
@@ -137,36 +142,36 @@ class AndroidAutomator:
         # wait stable
         sleep(1) 
 
-        print("[INFO] Opening QRIS scan activity..")
+        self.__log("[INFO] Opening QRIS scan activity..")
         self.__open_qris()
-        print("[INFO] Done.")
+        self.__log("[INFO] Done.")
 
         sleep(1) # wait QRIS activity is stable
         
-        print("[INFO] Opening gallery..")
+        self.__log("[INFO] Opening gallery..")
         self.__click_gallery()
         self.__wait_gallery_opened()
-        print("[INFO] Done.")
+        self.__log("[INFO] Done.")
         
-        print("[INFO] Picking first item in gallery..")
+        self.__log("[INFO] Picking first item in gallery..")
         self.__click_first_item_in_gallery()
-        print("[INFO] Done.")
+        self.__log("[INFO] Done.")
 
         sleep(1)
         
-        print("[INFO] Waiting QRIS pay activity..")
+        self.__log("[INFO] Waiting QRIS pay activity..")
         self.__wait_QRIS_pay_activity_opened()
-        print("[INFO] Done.")
+        self.__log("[INFO] Done.")
 
-        print("[INFO] Paying..")
+        self.__log("[INFO] Paying..")
         self.__click_pay_button()
-        print("[INFO] Waiting PIN dialog..")
+        self.__log("[INFO] Waiting PIN dialog..")
         self.__wait_verify_pin_dialog_appear()
-        print("[INFO] Filling PIN..")
+        self.__log("[INFO] Filling PIN..")
         self.__fill_pin()
-        print("[INFO] Waiting payment result..")
+        self.__log("[INFO] Waiting payment result..")
         self.__wait_pay_result_activity_opened()
-        print("[INFO] Done.")
+        self.__log("[INFO] Done.")
         sleep(1)
         self.__click_confirm_button()
 

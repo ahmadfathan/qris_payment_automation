@@ -39,7 +39,7 @@ def get_my_default_chrome_options():
     return chrome_options
 
 class BrowserAutomator:
-    def __init__(self, base_url: str, chrome_options: Options):
+    def __init__(self, base_url: str, chrome_options: Options, logger = None):
         self.__base_url = base_url
 
         # Optional: Set the path to your ChromeDriver if it's not in your PATH
@@ -48,6 +48,11 @@ class BrowserAutomator:
         self.__driver = webdriver.Chrome(options=chrome_options)
         self.__driver.set_window_size(1280, 1000)
 
+        self.__logger = logger
+
+    def __self.__log(self, msg):
+        if self.__logger is None: return
+        self.__logger.debug(f"[AndroidAutomator] {msg}")
 
     def __wait(self, timeout = 15):
         return WebDriverWait(self.__driver, timeout)
@@ -79,7 +84,7 @@ class BrowserAutomator:
         self.__driver.execute_script("arguments[0].click();", element)
 
     def generate_QRIS(self):
-        print("[INFO] Navigating to topup page..")
+        self.__log("[INFO] Navigating to topup page..")
 
         topup_nav_x_path = "//*[@id='navbarNav']/ul/li[4]/a"
         topup_nav = self.__wait().until(
@@ -90,7 +95,7 @@ class BrowserAutomator:
  
         self.__wait_page_loaded()
 
-        print("[INFO] Done.")
+        self.__log("[INFO] Done.")
 
         serialized_user_ids = "\n".join( self.__user_ids)
 
@@ -130,7 +135,7 @@ class BrowserAutomator:
     def __download_QRIS(self, filename):
         original_window = self.__driver.current_window_handle
 
-        print("[INFO] Getting payment URL..")
+        self.__log("[INFO] Getting payment URL..")
         try:
             qr_link = self.__wait().until(
                 EC.presence_of_element_located((By.XPATH, "//*[@id='iframeContainer']/a"))
@@ -145,8 +150,8 @@ class BrowserAutomator:
             except:
                 return False
 
-        print(f"[INFO] URL: {payment_url}")
-        print("[INFO] Done.")
+        self.__log(f"[INFO] URL: {payment_url}")
+        self.__log("[INFO] Done.")
 
         self.__driver.execute_script(f"window.open('{payment_url}', '_blank');")
         
@@ -173,14 +178,14 @@ class BrowserAutomator:
         #next_button.click()
 
     def loop_downloads(self, continue_event = None, qris_downloaded_event = None):
-        print("[DOWNLOAD QRIS] Loop downloads started.")
+        self.__log("[DOWNLOAD QRIS] Loop downloads started.")
         count = 0
         retry_count = 0
         while True:
             if continue_event is not None: 
-                print("[DOWNLOAD QRIS] waiting for continue signal..")
+                self.__log("[DOWNLOAD QRIS] waiting for continue signal..")
                 continue_event.wait()
-                print("[DOWNLOAD QRIS] got the signal, continuing..")
+                self.__log("[DOWNLOAD QRIS] got the signal, continuing..")
                 # unset it
                 continue_event.clear()
 
