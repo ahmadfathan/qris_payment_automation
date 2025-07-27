@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['app.py'],
+    ['app3.py'],
     pathex=[],
-    binaries=[('adb/windows/adb.exe', 'adb/windows'), ('adb/windows/AdbWinApi.dll', 'adb/windows'), ('adb/windows/AdbWinUsbApi.dll', 'adb/windows')],
-    datas=[],
+    binaries=[('embed/adb/windows/adb.exe', 'embed/adb/windows'), ('embed/adb/windows/AdbWinApi.dll', 'embed/adb/windows'), ('embed/adb/windows/AdbWinUsbApi.dll', 'embed/adb/windows')],
+    datas=[('.env', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

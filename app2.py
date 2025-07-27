@@ -13,19 +13,85 @@ from time import sleep
 
 from src.android.android_automator_v2 import AndroidAutomator, get_my_default_ui_automator2_options
 from src.browser.browser_automator_v2 import BrowserAutomator, get_my_default_chrome_options, get_user_ids
-from src.adb_helpers import run_adb_command, get_connected_devices
+from src.adb_helpers import get_connected_devices
+
+from multiprocessing import Queue
 
 
-def download_QRIS(browser_automator, continue_event, qris_downloaded_event):
-    browser_automator.loop_downloads(continue_event, qris_downloaded_event)
+def download_QRIS(base_url, username, password, user_ids, continue_event, qris_downloaded_event, stop_event, log_queue):
+    try:
+        browser_automator = BrowserAutomator(base_url, get_my_default_chrome_options())
+        browser_automator.set_credentials(username, password)
+        browser_automator.set_user_ids(user_ids)
+
+        log_queue.put("Setting up browser...")
+        browser_automator.setup()
+
+        log_queue.put("Generating QRIS...")
+        browser_automator.generate_QRIS()
+
+        first_time = True
+
+        count = 0
+        while True:
+            if stop_event.is_set():
+                break
+
+            if not first_time:
+                # Wait until allowed to continue
+                continue_event.wait()
+                continue_event.clear()
+
+            # Run the download loop once
+            log_queue.put(f"Download QRIS #{count}")
+            browser_automator.loop_downloads(continue_event, qris_downloaded_event)
+            log_queue.put(f"QRIS #{count} Downloaded")
+
+            count = count + 1
+            
+            if count == len(user_ids):
+                break
+            
+            first_time = False
+
+    except Exception as e:
+        log_queue.put(f"Error download QRIS: {e}")
+        print(f"[download_QRIS] Error: {e}")
+
+    finally:
+        try:
+            log_queue.put(f"Quitting browser")
+            browser_automator.quit()
+        except Exception:
+            pass
 
 
-def scan_QRIS(android_automator, qris_downloaded_event, continue_event, stop_event):
-    while not stop_event.is_set():
-        if qris_downloaded_event.wait(timeout=1):
-            android_automator.pay_qris_transaction()
-            continue_event.set()
-            qris_downloaded_event.clear()
+def scan_QRIS(appium_server_url, neo_pin, device_udid, qris_downloaded_event, continue_event, stop_event, log_queue):
+    try:
+        options = get_my_default_ui_automator2_options(device_udid)
+        android_automator = AndroidAutomator(appium_server_url, options)
+        android_automator.set_credentials(neo_pin)
+
+        while not stop_event.is_set():
+            if qris_downloaded_event.wait(timeout=1):
+                log_queue.put(f"Pay QRIS transaction")
+                android_automator.pay_qris_transaction()
+                log_queue.put(f"Pay QRIS transaction done")
+
+                continue_event.set()
+                qris_downloaded_event.clear()
+
+
+
+    except Exception as e:
+        log_queue.put(f"Error Scan QRIS: {e}")
+
+    finally:
+        try:
+            log_queue.put(f"Quitting android")
+            android_automator.quit()
+        except Exception:
+            pass
 
 
 class PaymentWorker(QThread):
@@ -41,19 +107,19 @@ class PaymentWorker(QThread):
         self.p_scan_QRIS = None
         self.stop_event = Event()
 
+        self.log_queue = Queue()
+
     def stop(self):
         self._running = False
         self.stop_event.set()
 
     def run(self):
-        browser_automator = None
-        android_automator = None
         try:
             self.log_message.emit("Loading configuration...")
             load_dotenv()
 
             appium_server_url = os.getenv("APPIUM_SERVER_URL")
-            neo_pin = os.getenv("NEO_PIN")
+            neo_pin = self.pin
             base_url = os.getenv("WEB_BASE_URL")
             username = os.getenv("WEB_CRED_USERNAME")
             password = os.getenv("WEB_CRED_PASSWORD")
@@ -66,33 +132,17 @@ class PaymentWorker(QThread):
             continue_event = Event()
             qris_downloaded_event = Event()
 
-            browser_automator = BrowserAutomator(base_url, get_my_default_chrome_options())
-            browser_automator.set_credentials(username, password)
-            browser_automator.set_user_ids(user_ids)
-
-            self.log_message.emit("Setting up browser...")
-            browser_automator.setup()
-            if not self._running:
-                browser_automator.quit()
-                self.log_message.emit("Stopped before QRIS generation.")
-                return
-
-            self.log_message.emit("Generating QRIS...")
-            browser_automator.generate_QRIS()
-            self.log_message.emit("QRIS generated successfully.")
-            if not self._running:
-                browser_automator.quit()
-                self.log_message.emit("Stopped before launching processes.")
-                return
-
-            options = get_my_default_ui_automator2_options(self.device_udid)
-            android_automator = AndroidAutomator(appium_server_url, options)
-            android_automator.set_credentials(neo_pin)
-
+            # Start the subprocesses with simple data args only
             self.log_message.emit("Launching QRIS processes...")
 
-            self.p_download_QRIS = Process(target=download_QRIS, args=(browser_automator, continue_event, qris_downloaded_event,))
-            self.p_scan_QRIS = Process(target=scan_QRIS, args=(android_automator, qris_downloaded_event, continue_event, self.stop_event,))
+            self.p_download_QRIS = Process(
+                target=download_QRIS,
+                args=(base_url, username, password, user_ids, continue_event, qris_downloaded_event, self.stop_event, self.log_queue),
+            )
+            self.p_scan_QRIS = Process(
+                target=scan_QRIS,
+                args=(appium_server_url, neo_pin, self.device_udid, qris_downloaded_event, continue_event, self.stop_event, self.log_queue),
+            )
 
             self.p_download_QRIS.start()
             self.p_scan_QRIS.start()
@@ -101,7 +151,15 @@ class PaymentWorker(QThread):
             continue_event.set()
 
             while self._running:
-                sleep(1)
+                try:
+                    message = self.log_queue.get_nowait()
+                    self.log_message.emit(message)
+                except:
+                    pass
+                sleep(0.5)
+
+                # if not p_download_QRIS.is_alive:
+                #     break
 
         except Exception as e:
             self.log_message.emit(f"Error: {str(e)}")
@@ -111,23 +169,10 @@ class PaymentWorker(QThread):
             self.stop_event.set()
 
             if self.p_scan_QRIS and self.p_scan_QRIS.is_alive():
-                self.p_scan_QRIS.terminate()
-                self.p_scan_QRIS.join()
+                self.p_scan_QRIS.join(timeout=5)
 
             if self.p_download_QRIS and self.p_download_QRIS.is_alive():
-                self.p_download_QRIS.terminate()
-                self.p_download_QRIS.join()
-
-            try:
-                if browser_automator:
-                    browser_automator.quit()
-            except Exception:
-                pass
-            try:
-                if android_automator:
-                    android_automator.quit()
-            except Exception:
-                pass
+                self.p_download_QRIS.join(timeout=5)
 
             self.log_message.emit("Payment automation stopped.")
             self.payment_finished.emit()
@@ -207,7 +252,6 @@ class QRISAutoPayApp(QWidget):
     def stop_worker(self):
         if self.worker:
             self.worker.stop()
-            # Do NOT call self.worker.wait(), we rely on signal
 
     def on_payment_finished(self):
         self.pin_input.setDisabled(False)
@@ -234,7 +278,6 @@ class QRISAutoPayApp(QWidget):
 
 # Run the app
 if __name__ == "__main__":
-    # Set multiprocessing start method
     if platform.system() == "Windows":
         set_start_method("spawn")
     else:

@@ -4,8 +4,9 @@
 
 ```
 pyinstaller --onefile --noconsole --name qris_auto_pay ^
-  --add-binary "adb/windows/adb.exe;adb/windows" ^
-  --add-binary "adb/windows/AdbWinApi.dll;adb/windows" ^
-  --add-binary "adb/windows/AdbWinUsbApi.dll;adb/windows" ^
-  app.py
+  --add-data ".env;." ^
+  --add-binary "embed/adb/windows/adb.exe;embed/adb/windows" ^
+  --add-binary "embed/adb/windows/AdbWinApi.dll;embed/adb/windows" ^
+  --add-binary "embed/adb/windows/AdbWinUsbApi.dll;embed/adb/windows" ^
+  app3.py
 ```  
