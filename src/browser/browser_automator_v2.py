@@ -20,7 +20,7 @@ def get_user_ids(filename):
             ids.append(line.strip())
     return ids
 
-def get_my_default_chrome_options():
+def get_my_default_chrome_options(headless=True):
     # Create a dictionary for Chrome preferences
     chrome_prefs = {
         "credentials_enable_service": False,
@@ -32,9 +32,10 @@ def get_my_default_chrome_options():
     chrome_options = Options()
     chrome_options.add_experimental_option("prefs", chrome_prefs)
 
-    # chrome_options.add_argument("--headless")  # Runs Chrome in headless mode
-    # chrome_options.add_argument("--no-sandbox")
-    # chrome_options.add_argument("--disable-dev-shm-usage")
+    if headless:
+        chrome_options.add_argument("--headless")  # Runs Chrome in headless mode
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
 
     return chrome_options
 
