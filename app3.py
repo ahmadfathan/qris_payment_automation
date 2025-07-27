@@ -60,12 +60,21 @@ class BrowserWorker(QThread):
 
             count = 0
             total = len(self.user_ids)
+            last_failed = False
             while not self._stop and count < total:
                 self.log_message.emit(f"[Browser] Download QRIS #{count}")
-                self.browser_automator.loop_downloads()
+                
+                should_click_next = count > 0
+                success = self.browser_automator.download_QRIS(idx=count, next=should_click_next, refresh=last_failed)
+
+                if success:
+                    count += 1
+                else:
+                    last_failed = True
+
                 self.log_message.emit(f"[Browser] QRIS #{count} Downloaded")
                 self.qris_downloaded.emit()
-                count += 1
+
 
                 # Wait for signal from Android worker before continuing
                 self._wait_for_continue()
@@ -126,6 +135,7 @@ class AndroidWorker(QThread):
             self._wait_loop.quit()
 
     def run(self):
+
         try:
             options = get_my_default_ui_automator2_options(self.device_udid)
             self.android_automator = AndroidAutomator(self.appium_server_url, options)

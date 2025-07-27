@@ -177,6 +177,17 @@ class BrowserAutomator:
         self.__js_click_element(next_button)
         #next_button.click()
 
+    def download_QRIS(self, idx, next = True, refresh = False):
+        if refresh:
+            self.__driver.refresh()
+            self.__wait_page_loaded()
+
+        if next:
+            self.__next_QRIS()
+
+        filename = self.__generate_filename(self.__user_ids[idx])
+        return self.__download_QRIS(filename)
+
     def loop_downloads(self, continue_event = None, qris_downloaded_event = None):
         self.__log("[DOWNLOAD QRIS] Loop downloads started.")
         count = 0
