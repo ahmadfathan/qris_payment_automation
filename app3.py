@@ -61,20 +61,30 @@ class BrowserWorker(QThread):
             count = 0
             total = len(self.user_ids)
             last_failed = False
+            retry_count = 0
+            max_retry = 3
+
             while not self._stop and count < total:
-                self.log_message.emit(f"[Browser] Download QRIS #{count}")
+                self.log_message.emit(f"[Browser] Download QRIS #{count + 1}")
                 
                 should_click_next = count > 0
                 success = self.browser_automator.download_QRIS(idx=count, next=should_click_next, refresh=last_failed)
 
                 if success:
                     count += 1
+                    retry_count = 0
+
+                    self.log_message.emit(f"[Browser] QRIS #{count} Downloaded")
+                    self.qris_downloaded.emit()
                 else:
-                    last_failed = True
-
-                self.log_message.emit(f"[Browser] QRIS #{count} Downloaded")
-                self.qris_downloaded.emit()
-
+                    if retry_count <= max_retry:
+                        last_failed = True
+                        retry_count = retry_count + 1
+                        self.log_message.emit(f"[Browser] Failed to Download QRIS #{count}")
+                    else:
+                        count += 1
+                        last_failed = False
+                        retry_count = 0
 
                 # Wait for signal from Android worker before continuing
                 self._wait_for_continue()
@@ -219,6 +229,9 @@ class PaymentWorker(QObject):
         self.browser_worker.log_message.connect(self.log_message)
         self.android_worker.log_message.connect(self.log_message)
 
+        # Connect finished signal of browser to stop the android worker
+        self.browser_worker.finished.connect(self.stop_android_worker)
+
         self.browser_worker.finished.connect(self._on_finished)
         self.android_worker.finished.connect(self._on_finished)
 
@@ -232,6 +245,11 @@ class PaymentWorker(QObject):
         self.log_message.emit("[PaymentWorker] Starting workers...")
         self.browser_worker.start()
         self.android_worker.start()
+
+    def stop_android_worker(self):
+        """Stop the Android worker when the browser finishes."""
+        self.log_message.emit("[PaymentWorker] Stopping Android Worker due to Browser finishing.")
+        self.android_worker.stop()
 
     def stop(self):
         self.log_message.emit("[PaymentWorker] Stopping workers...")
